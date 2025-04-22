@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pokémon Circular Gallery</title>
+    <style>
+        body {
+            background: #f0f4f8;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .gallery-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            margin: 60px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .circle-gallery {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            pointer-events: auto;
+        }
+
+        .poke-thumb {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            cursor: pointer;
+            transition: transform 0.3s;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid #e0e0e0;
+        }
+
+        .poke-thumb:hover {
+            transform: scale(1.15);
+            z-index: 2;
+            border-color: #ffcb05;
+        }
+
+        .poke-thumb img {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        /* Expanded view overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .overlay.active {
+            display: flex;
+        }
+
+        .expanded-card {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+            padding: 36px 48px 32px 48px;
+            text-align: center;
+            min-width: 350px;
+            max-width: 90vw;
+            position: relative;
+            animation: popin 0.3s;
+        }
+
+        @keyframes popin {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .expanded-card img {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+            border-radius: 50%;
+            margin-bottom: 18px;
+            background: #f6f6f6;
+        }
+
+        .expanded-card h2 {
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+            color: #2d2d2d;
+        }
+
+        .expanded-card p {
+            margin: 0 0 8px 0;
+            color: #555;
+            font-size: 1.1rem;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            font-size: 1.6rem;
+            background: #eee;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #ffcb05;
+            color: #2d2d2d;
+        }
+
+        /* Form Styles */
+        .add-pokemon-form {
+            margin: 20px auto;
+            width: 80%;
+            max-width: 500px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .add-pokemon-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .add-pokemon-form input,
+        .add-pokemon-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .add-pokemon-form button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .add-pokemon-form button:hover {
+            background-color: #367c39;
+        }
+
+        @media (max-width: 700px) {
+            .gallery-container {
+                width: 95vw;
+                height: 95vw;
+            }
+
+            .poke-thumb {
+                width: 70px;
+                height: 70px;
+            }
+
+            .expanded-card img {
+                width: 120px;
+                height: 120px;
+            }
+
+            .expanded-card {
+                padding: 18px 8vw 18px 8vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="gallery-container">
+        <div class="circle-gallery" id="circleGallery"></div>
+    </div>
+    <div class="overlay" id="overlay">
+        <div class="expanded-card" id="expandedCard">
+            <button class="close-btn" id="closeBtn">&times;</button>
+            <img id="expandedImg" src="" alt="">
+            <h2 id="pokeName"></h2>
+            <p id="pokeType"></p>
+            <p id="pokeDesc"></p>
+        </div>
+    </div>
+
+    <div class="add-pokemon-form">
+        <h2>Add New Pokémon</h2>
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name">
+
+        <label for="type">Type:</label>
+        <input type="text" id="type" name="type">
+
+        <label for="img">Image URL:</label>
+        <input type="text" id="img" name="img">
+
+        <label for="desc">Description:</label>
+        <textarea id="desc" name="desc"></textarea>
+
+        <button onclick="addPokemon()">Add Pokémon</button>
+    </div>
+
+    <script>
+        // Pokémon data (sample, you can expand with more details)
+        const pokemons = [{
+                name: "Bulbasaur",
+                type: "Grass/Poison",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
+                desc: "A strange seed was planted on its back at birth. The plant sprouts and grows with this Pokémon."
+            },
+            {
+                name: "Charmander",
+                type: "Fire",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png",
+                desc: "Obviously prefers hot places. When it rains, steam is said to spout from the tip of its tail."
+            },
+            {
+                name: "Squirtle",
+                type: "Water",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/7.png",
+                desc: "After birth, its back swells and hardens into a shell. Powerfully sprays foam from its mouth."
+            },
+            {
+                name: "Pikachu",
+                type: "Electric",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png",
+                desc: "When several of these Pokémon gather, their electricity could build and cause lightning storms."
+            },
+            {
+                name: "Jigglypuff",
+                type: "Normal/Fairy",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/39.png",
+                desc: "Uses its alluring eyes to enrapture its foe. It then sings a pleasing melody that lulls the foe to sleep."
+            },
+            {
+                name: "Meowth",
+                type: "Normal",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/52.png",
+                desc: "Adores circular objects. Wanders the streets on a nightly basis to look for dropped loose change."
+            },
+            {
+                name: "Psyduck",
+                type: "Water",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/54.png",
+                desc: "While lulling its enemies with its vacant look, this wily Pokémon will use psychokinetic powers."
+            },
+            {
+                name: "Machop",
+                type: "Fighting",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/66.png",
+                desc: "Loves to build its muscles. It trains in all styles of martial arts to become even stronger."
+            },
+            {
+                name: "Eevee",
+                type: "Normal",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png",
+                desc: "Its genetic code is irregular. It may mutate if it is exposed to radiation from element stones."
+            },
+            {
+                name: "Snorlax",
+                type: "Normal",
+                img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/143.png",
+                desc: "Very lazy. Just eats and sleeps. As its rotund bulk builds, it becomes steadily more slothful."
+            }
+        ];
+
+        // Arrange thumbnails in a circle
+        const gallery = document.getElementById('circleGallery');
+        const radius = 230; // radius for circular arrangement
+        const centerX = 300,
+            centerY = 300; // center of container
+
+        function displayGallery() {
+            gallery.innerHTML = ''; // Clear existing gallery
+
+            pokemons.forEach((poke, i) => {
+                const angle = (2 * Math.PI / pokemons.length) * i;
+                const x = centerX + radius * Math.cos(angle) - 50; // 50 = half thumb width
+                const y = centerY + radius * Math.sin(angle) - 50; // 50 = half thumb height
+
+                const thumb = document.createElement('div');
+                thumb.className = 'poke-thumb';
+                thumb.style.left = `${x}px`;
+                thumb.style.top = `${y}px`;
+
+                const img = document.createElement('img');
+                img.src = poke.img;
+                img.alt = poke.name;
+
+                thumb.appendChild(img);
+
+                thumb.addEventListener('click', () => showExpanded(i));
+                gallery.appendChild(thumb);
+            });
+        }
+
+        displayGallery(); // Initial gallery display
+
+        // Expanded view logic
+        const overlay = document.getElementById('overlay');
+        const expandedImg = document.getElementById('expandedImg');
+        const pokeName = document.getElementById('pokeName');
+        const pokeType = document.getElementById('pokeType');
+        const pokeDesc = document.getElementById('pokeDesc');
+        const closeBtn = document.getElementById('closeBtn');
+
+        function showExpanded(idx) {
+            const poke = pokemons[idx];
+            expandedImg.src = poke.img;
+            expandedImg.alt = poke.name;
+            pokeName.textContent = poke.name;
+            pokeType.textContent = "Type: " + poke.type;
+            pokeDesc.textContent = poke.desc;
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeExpanded() {
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        closeBtn.addEventListener('click', closeExpanded);
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeExpanded();
+        });
+
+        // Add Pokemon Function
+        function addPokemon() {
+            const name = document.getElementById('name').value;
+            const type = document.getElementById('type').value;
+            const img = document.getElementById('img').value;
+            const desc = document.getElementById('desc').value;
+
+            if (name && type && img && desc) {
+                const newPokemon = {
+                    name: name,
+                    type: type,
+                    img: img,
+                    desc: desc
+                };
+
+                pokemons.push(newPokemon);
+                displayGallery(); // Update the gallery
+                // Clear the form
+                document.getElementById('name').value = '';
+                document.getElementById('type').value = '';
+                document.getElementById('img').value = '';
+                document.getElementById('desc').value = '';
+            } else {
+                alert('Please fill in all fields to add a Pokémon.');
+            }
+        }
+    </script>
+</body>
+
+</html>
